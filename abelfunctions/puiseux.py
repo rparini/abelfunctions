@@ -877,19 +877,12 @@ class PuiseuxTSeries(object):
         -------
         none
             The PuiseuxTSeries is modified in-place.
-
-        Note
-        ----
-        This doesn't work well in the infinite case. (Puiseux series centered
-        at x=oo.)
         """
         num_iter = 0
         max_iter = 16
         while num_iter < max_iter:
-            xt = self.eval_x(t)
-            yt = self.eval_y(t)
-            n,a = max(self.terms)
-            curve_error = abs(self.f(xt,yt))
+            ft = self.f(self.xpart, self.ypart)
+            curve_error = abs(ft(t))
             if (curve_error < curve_tol):
                 break
             else:

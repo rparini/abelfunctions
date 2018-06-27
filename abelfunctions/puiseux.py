@@ -490,7 +490,7 @@ def puiseux(f, alpha, beta=None, order=None, parametric=True):
     x,y = R.gens()
     g, transform = almost_monicize(falpha)
     galpha = R(g(0,y)).univariate_polynomial()
-    betas = galpha.roots(ring=QQbar, multiplicities=False)
+    betas = galpha.roots(ring=QQ, multiplicities=False)
 
     # filter for requested value of beta. raise error if not found
     if not beta is None:

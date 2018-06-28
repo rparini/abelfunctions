@@ -490,7 +490,12 @@ def puiseux(f, alpha, beta=None, order=None, parametric=True):
     x,y = R.gens()
     g, transform = almost_monicize(falpha)
     galpha = R(g(0,y)).univariate_polynomial()
+
+    ### XXX: Doesn't generally work!
+    ### Unlike Maple, sage doesn't seem to have a symbolic representiation like RootOf
+    ### so this will just throw an error of the roots aren't rational.
     betas = galpha.roots(ring=QQ, multiplicities=False)
+    # betas = galpha.roots(ring=QQbar, multiplicities=False)
 
     # filter for requested value of beta. raise error if not found
     if not beta is None:

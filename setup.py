@@ -17,7 +17,12 @@ Developers: to clean the directory of any extraneous files, such as compiled
 Python .pyc and Cython .o/.so output and run:
 
     $ sage setup.py clean
+
+'python' can be used instead of 'sage' to just install the riemann_theta 
+function component.  The rest of the Abelfunctions functionality is not
+available from within python
 """
+from __future__ import print_function
 import os
 import sys
 import shutil
@@ -26,70 +31,76 @@ from distutils.core import setup, Command
 from distutils.extension import Extension
 from Cython.Build import cythonize
 from numpy.distutils.misc_util import get_numpy_include_dirs
+import warnings
 
-# raise error if the user is not using Sage to compile
+# if the user is not using Sage to compile then just install riemann_theta component
+use_sage = True
 try:
     from sage.env import sage_include_directories
     SAGE_ROOT = os.environ['SAGE_ROOT']
 except (ImportError, KeyError):
-    raise EnvironmentError('abelfunctions must be built using Sage:\n\n'
-                           '\t$ sage setup.py <args> <kwds>\n')
+    use_sage = False
+
+    # just print warning message, not the line of code the message comes from
+    formatwarning_orig = warnings.formatwarning
+    warnings.formatwarning = lambda message, category, filename, lineno, line=None: \
+        formatwarning_orig(message, category, filename, lineno, line='')
+    warnings.warn('\n\tInstalling Riemann theta component with python\n'
+                  '\tFull functionallity requires abelfunctions to be built using Sage:\n\n'
+                    '\t\t$ sage setup.py <args> <kwds>\n')
 
 # list of Abelfunctions extension modules. most modules need to be compiled
 # against the Sage and Numpy (included with Sage) libraries. The necessary
 # include_dirs are provided after the module list.
 #
 ext_modules = [
-    Extension('abelfunctions.complex_path',
-              sources=[
-                  os.path.join('abelfunctions',
-                               'complex_path.pyx')]
-          ),
-    Extension('abelfunctions.riemann_surface_path',
-              sources=[
-                  os.path.join('abelfunctions',
-                               'riemann_surface_path.pyx')]
-          ),
-    Extension('abelfunctions.puiseux_series_ring_element',
-              sources=[
-                  os.path.join('abelfunctions',
-                               'puiseux_series_ring_element.pyx')]
-          ),
-    Extension('abelfunctions.riemann_theta.radius',
-              sources=[os.path.join('abelfunctions','riemann_theta',
-                                    'lll_reduce.c'),
-                       os.path.join('abelfunctions','riemann_theta',
-                                    'radius.pyx')]
+  Extension('abelfunctions.riemann_theta.radius',
+    sources=[os.path.join('abelfunctions','riemann_theta', 'lll_reduce.c'),
+             os.path.join('abelfunctions','riemann_theta', 'radius.pyx')]
           ),
     Extension('abelfunctions.riemann_theta.integer_points',
-              sources=[os.path.join('abelfunctions','riemann_theta',
-                                    'integer_points.pyx')]
+      sources=[os.path.join('abelfunctions','riemann_theta', 'integer_points.pyx')]
           ),
     Extension('abelfunctions.riemann_theta.riemann_theta',
-              sources=[os.path.join('abelfunctions','riemann_theta',
-                                    'finite_sum.c'),
-                       os.path.join('abelfunctions','riemann_theta',
-                                    'riemann_theta.pyx')]
+      sources=[os.path.join('abelfunctions','riemann_theta', 'finite_sum.c'),
+               os.path.join('abelfunctions','riemann_theta', 'riemann_theta.pyx')]
           ),
     ]
+
+if use_sage:
+  ext_modules.extend([
+    Extension('abelfunctions.complex_path',
+      sources=[os.path.join('abelfunctions', 'complex_path.pyx')]
+          ),
+    Extension('abelfunctions.riemann_surface_path',
+      sources=[os.path.join('abelfunctions', 'riemann_surface_path.pyx')]
+          ),
+    Extension('abelfunctions.puiseux_series_ring_element',
+      sources=[os.path.join('abelfunctions', 'puiseux_series_ring_element.pyx')]
+          ),
+    ])
 
 # parameters for all extension modules:
 #
 # * most modules depend on Sage and Numpy. Provide include directories.
 # * disable warnings in gcc step
-INCLUDES = sage_include_directories()
+if use_sage:
+  INCLUDES_SAGE = sage_include_directories()
+  for mod in ext_modules:
+      mod.include_dirs.extend(INCLUDES_SAGE)
+
 INCLUDES_NUMPY = get_numpy_include_dirs()
 for mod in ext_modules:
-    mod.include_dirs.extend(INCLUDES)
-    mod.include_dirs.extend(INCLUDES_NUMPY)
-    mod.extra_compile_args.append('-w')
-    mod.extra_compile_args.append('-std=c99')
+  mod.include_dirs.extend(INCLUDES_NUMPY)
+  mod.extra_compile_args.append('-w')
+  mod.extra_compile_args.append('-std=c99')
 
 packages = [
     'abelfunctions',
     'abelfunctions.riemann_theta',
     'abelfunctions.utilities'
 ]
+
 
 class clean(Command):
     """Cleans files so you should get the same copy as in git."""
@@ -111,10 +122,10 @@ class clean(Command):
             for file in files:
                 file = os.path.join(root, file)
                 if file.endswith('.pyc') and os.path.isfile(file):
-                    print 'deleting %s...'%file
+                    print('deleting %s...'%file)
                     os.remove(file)
                 if file.endswith('~') and os.path.isfile(file):
-                    print 'deleting %s...'%file
+                    print('deleting %s...'%file)
                     os.remove(file)
 
         os.chdir(dir_setup)
@@ -123,10 +134,10 @@ class clean(Command):
         blacklist = ['build', 'dist', 'doc/_build']
         for file in blacklist:
             if os.path.isfile(file):
-                print 'deleting %s...'%file
+                print('deleting %s...'%file)
                 os.remove(file)
             elif os.path.isdir(file):
-                print 'deleting %s...'%file
+                print('deleting %s...'%file)
                 shutil.rmtree(file)
 
         os.chdir(dir_setup)
@@ -140,11 +151,11 @@ class clean(Command):
                 (root, ext) = os.path.splitext(file)
                 file_c = root + '.c'
                 if os.path.isfile(file_c):
-                    print 'deleting %s...'%file
+                    print('deleting %s...'%file)
                     os.remove(file_c)
                 file_cpp = root + '.cpp'
                 if os.path.isfile(file_cpp):
-                    print 'deleting %s...'%file
+                    print('deleting %s...'%file)
                     os.remove(file_cpp)
 
         os.chdir(dir_setup)
@@ -155,7 +166,7 @@ class clean(Command):
             file = mod.replace('.', os.path.sep) + '.so'
             file = os.path.join(dir_setup, file)
             if os.path.isfile(file):
-                print 'deleting %s...'%file
+                print('deleting %s...'%file)
                 os.remove(file)
 
         os.chdir(curr_dir)
